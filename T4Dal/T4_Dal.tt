@@ -1,0 +1,183 @@
+<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System.xml" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#@ import namespace="System.Data" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ include file="$(ProjectDir)MultipleOutputHelper.ttinclude" #>
+
+<# 
+ 
+ string connectionString= "server=.;database=ExcessChip;uid=sa;password=test123;"; 
+ SqlConnection conn = new SqlConnection(connectionString);
+ conn.Open();
+ 
+ string selectQuery ="SET FMTONLY ON; select * from @tableName; SET FMTONLY OFF;";
+ SqlCommand command = new SqlCommand(selectQuery,conn);
+ SqlDataAdapter ad = new SqlDataAdapter(command);
+ System.Data.DataSet ds = new DataSet(); 
+ 
+ var manager = Manager.Create(Host, GenerationEnvironment); 
+
+
+ System.Data.DataTable schema = conn.GetSchema("Tables");
+ foreach(System.Data.DataRow row in schema.Rows)
+ { 
+ ds.Tables.Clear();
+ string tb_name= row["TABLE_NAME"].ToString(); 
+ command.CommandText = selectQuery.Replace("@tableName",row["TABLE_NAME"].ToString());
+ ad.FillSchema(ds, SchemaType.Mapped,tb_name); 
+
+
+ manager.StartNewFile(tb_name+"Dal.cs");#>
+using Dapper;
+using ExcessChip.Common;
+using ExcessChip.Model;
+using System;
+using System.Collections.Generic;
+using System.Data;
+using System.Data.SqlClient;
+using System.Linq;
+
+namespace ExcessChip.DAL
+{
+	/// <summary>
+	/// -<#=tb_name#> 
+	/// </summary>
+	public class <#=tb_name#>Dal
+	{ 
+<#
+PushIndent("");
+
+WriteLine("		private static readonly string connString = ConfigHelper.GetConnectionString(\"connStr\");");
+
+WriteLine("		private SqlConnection _conn;");
+WriteLine("		public SqlConnection Conn {");
+WriteLine("			get {");
+WriteLine("				_conn = new SqlConnection(connString);");
+WriteLine("				_conn.Open();");
+WriteLine("				return _conn;");
+WriteLine("			}");
+WriteLine("		}");
+foreach (DataColumn dc in ds.Tables[0].Columns) 
+{
+//根据表名称和字段名称查出字段描述 comment
+string sql = @"select d.value from sys.syscolumns a left outer join sys.extended_properties d on a.id = d.major_id and a.colid = d.minor_id and d.name = 'MS_Description' where object_name(a.id) = '{0}' and a.name='{1}' ";
+ SqlCommand cmd = new SqlCommand(string.Format(sql, row["TABLE_NAME"],dc.ColumnName),conn);
+ object comment= cmd.ExecuteScalar(); 
+ 
+}
+
+
+//查询一个表的信息 当前表的所有字段,字段中没有查自增健
+string files = "select a.name, a.isnullable, a.iscomputed,case when d.value is null then a.name else d.value end as comment, type_name(a.xusertype) as type, a.length, case when (a.status & 0x80) = 0x80 then 1 else 0 end as is_identity, case when index_col (OBJECT_NAME(a.id), b.indid, a.colid) = a.name then 1 else 0 end as is_primary, case when ( TYPE_NAME(a.xusertype) IN ('xml','text','ntext','image') OR (TYPE_NAME(a.xusertype) IN ('varchar','nvarchar','varbinary') AND a.length = -1) ) then 1 else 0 end as is_lob, case when ( c.ctext is null ) then 'null' else substring(c.text, 2, len(c.text) - 2 ) end as defaultValue from sys.syscolumns a left outer join sys.extended_properties d on a.id = d.major_id and a.colid = d.minor_id and d.name = 'MS_Description' left outer join sys.sysindexes b on a.id = b.id and ( b.status & 0x800) = 0x800 left outer join sys.syscomments c on a.cdefault = c.id where object_name(a.id) = '"+row["TABLE_NAME"].ToString()+"' and a.status<>128 order by a.colorder";
+SqlCommand cmd1 = new SqlCommand(files, conn);
+SqlDataAdapter adFiles = new SqlDataAdapter(cmd1);
+DataSet dsFiles = new DataSet();
+adFiles.Fill(dsFiles);
+
+
+
+ 
+if (dsFiles.Tables.Count > 0)
+{
+string insert = "string sql=@\"insert into {0} ({1}) values({2}); SELECT @@IDENTITY\";";
+string update = "string sql=@\"update set {0} {1} where id=@id\";";
+string delete = "string sql=@\"delete from "+row["TABLE_NAME"].ToString()+" where Id = @Id\";";
+string k1 = "";
+string v1 = "";
+string v2 = "";
+string t = "";
+foreach (DataRow dr in dsFiles.Tables[0].Rows)
+{
+	k1 += k1 == "" ? dr["name"].ToString() : ", "+dr["name"].ToString();
+	v1 += v1 == "" ? "@" + dr["name"].ToString() : ","+" @" + dr["name"].ToString();
+	v2 +=v2==""?dr["name"].ToString() + "=@" + dr["name"].ToString() :","+dr["name"].ToString() + "=@" + dr["name"].ToString();
+}
+WriteLine(t);
+insert = string.Format(insert, row["TABLE_NAME"].ToString(), k1, v1);
+update = string.Format(update, row["TABLE_NAME"].ToString(), v2);
+
+//insert方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 增加一条数据");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public object Add" + row["TABLE_NAME"].ToString() + "("+row["TABLE_NAME"].ToString()+" model)\r\n		{");
+WriteLine("			using (Conn)\r\n			{");
+WriteLine("				"+insert);
+WriteLine("				return Conn.ExecuteScalar(sql.ToString(), model);");
+WriteLine("			}\r\n		}\r\n");
+
+//update方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 更新一条数据");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public int Update" + row["TABLE_NAME"].ToString() + "("+row["TABLE_NAME"].ToString()+" model)\r\n		{");
+WriteLine("			using (Conn)\r\n			{");
+WriteLine("				"+update);
+WriteLine("				return Conn.Execute(sql.ToString(), model);");
+WriteLine("			}\r\n		}\r\n");
+
+//delete方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 删除一条数据");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public int Delete" + row["TABLE_NAME"].ToString() + "(int id)\r\n		{");
+WriteLine("			using (Conn)\r\n			{");
+WriteLine("				"+delete);
+WriteLine("				return Conn.Execute(sql.ToString());");
+WriteLine("			}\r\n		}\r\n");
+
+//根据主键获取一个对象实体
+string list = "string sql=\"select * from "+row["TABLE_NAME"].ToString()+" where Id=@Id\";";
+
+WriteLine("		/// <summary>");
+WriteLine("		/// 根据主键Id获取一个对象实体");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public "+row["TABLE_NAME"].ToString()+" Get" +row["TABLE_NAME"].ToString()+ "ById(int id)\r\n		{");
+WriteLine("			using (Conn)\r\n			{");
+WriteLine("				"+list);
+WriteLine("				return Conn.Query<"+row["TABLE_NAME"].ToString()+">(sql, new { Id = id }).SingleOrDefault();");
+WriteLine("			}\r\n		}\r\n");
+
+//获取实体集合方法
+string modelList = "string sql=\"select * from "+row["TABLE_NAME"].ToString()+"\";";
+
+WriteLine("		/// <summary>");
+WriteLine("		/// 获取实体List");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public List<"+row["TABLE_NAME"].ToString()+"> Get" + row["TABLE_NAME"].ToString() + "List(int top, string where = null, string order = null)\r\n		{");
+WriteLine("			using (Conn)\r\n			{");
+WriteLine("				"+modelList);
+WriteLine("				return Conn.Query<"+row["TABLE_NAME"].ToString()+">(sql).ToList();");
+WriteLine("			}\r\n		}\r\n");
+
+//检测字段值是否存在
+string exist = "string sql=\"select count(*) from "+row["TABLE_NAME"].ToString()+" where {0}='{1}' \";";
+ 
+WriteLine("		/// <summary>");
+WriteLine("		/// 检测字段值是否存在");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public bool IsColumnExist(string key,string val)\r\n		{");
+WriteLine("			using (Conn)\r\n			{");
+WriteLine("				"+exist);
+WriteLine("				return Conn.QuerySingle<int>(string.Format(sql, key, val)) > 0;");
+WriteLine("			}\r\n		}\r\n");
+}
+PopIndent();#>
+	}
+}
+<#
+	manager.EndBlock(); 
+	}
+	conn.Close(); 
+	manager.Process(true); 
+#>

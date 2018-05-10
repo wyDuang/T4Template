@@ -1,0 +1,13 @@
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\T4Template.dll
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\T4Template.pdb
+D:\JCDZProjects\ExcessChip\T4Template\obj\Debug\T4Template.csprojResolveAssemblyReference.cache
+D:\JCDZProjects\ExcessChip\T4Template\obj\Debug\T4Template.dll
+D:\JCDZProjects\ExcessChip\T4Template\obj\Debug\T4Template.pdb
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\Dapper.dll
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\ExcessChip.Common.dll
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\ExcessChip.Model.dll
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\Newtonsoft.Json.dll
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\ExcessChip.Common.pdb
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\ExcessChip.Model.pdb
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\Dapper.xml
+D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\Newtonsoft.Json.xml

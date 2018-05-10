@@ -1,0 +1,70 @@
+<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System.xml" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#@ import namespace="System.Data" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ include file="$(ProjectDir)MultipleOutputHelper.ttinclude" #>
+
+<#    
+   
+        string connectionString= "server=.;database=ExcessChip;uid=sa;password=test123;";        
+        SqlConnection conn = new SqlConnection(connectionString);
+        conn.Open();
+    
+        string selectQuery ="SET FMTONLY ON; select * from @tableName; SET FMTONLY OFF;";
+        SqlCommand command = new SqlCommand(selectQuery,conn);
+        SqlDataAdapter ad = new SqlDataAdapter(command);
+        System.Data.DataSet ds = new DataSet(); 
+  
+        var manager = Manager.Create(Host, GenerationEnvironment);  
+
+
+        System.Data.DataTable schema = conn.GetSchema("Tables");
+        foreach(System.Data.DataRow row in schema.Rows)
+        {    
+            ds.Tables.Clear();
+            string tb_name= row["TABLE_NAME"].ToString();        
+            command.CommandText = selectQuery.Replace("@tableName",row["TABLE_NAME"].ToString());
+            ad.FillSchema(ds, SchemaType.Mapped,tb_name);  
+
+
+            manager.StartNewFile(tb_name+".cs");#>
+using System;
+
+namespace RoleSystem.Model
+{    
+	/// <summary>
+	/// 实体-<#=tb_name#>-
+	/// </summary>
+	public partial class <#=tb_name#>    
+	{
+        <# PushIndent(" ");
+        foreach (DataColumn dc in ds.Tables[0].Columns)
+        {
+   //根据表名称和字段名称查出字段描述 comment
+    string sql = @"select d.value from  sys.syscolumns a left outer join  sys.extended_properties  d on a.id = d.major_id and a.colid = d.minor_id and d.name = 'MS_Description' where object_name(a.id) = '{0}' and a.name='{1}'  ";
+        SqlCommand cmd = new SqlCommand(string.Format(sql, row["TABLE_NAME"],dc.ColumnName),conn);
+        object comment= cmd.ExecuteScalar();
+        WriteLine("\r\n       /// <summary>\r\n       /// "+comment+"\r\n       /// </summary>\r\n       public " + dc.DataType.Name+ (dc.AllowDBNull && dc.DataType.Name.ToLower() != "string" ? "? ": " ") + dc.ColumnName + " { get; set; }");
+        }
+
+   //查询一个表的信息  当前表的所有字段,字段中没有查自增健
+   string files = "select   a.name, a.isnullable, a.iscomputed,case when d.value is null then a.name else d.value end as comment, type_name(a.xusertype) as type, a.length, case when (a.status & 0x80) = 0x80 then 1 else 0 end as is_identity, case when index_col (OBJECT_NAME(a.id), b.indid, a.colid) = a.name then 1 else 0 end  as is_primary, case when ( TYPE_NAME(a.xusertype) IN ('xml','text','ntext','image') OR (TYPE_NAME(a.xusertype) IN ('varchar','nvarchar','varbinary') AND a.length = -1) ) then 1 else 0 end as is_lob, case when ( c.ctext is null ) then 'null' else substring(c.text, 2, len(c.text) - 2 ) end as defaultValue from  sys.syscolumns a left outer join  sys.extended_properties  d on a.id = d.major_id and a.colid = d.minor_id and d.name = 'MS_Description' left outer join  sys.sysindexes b on a.id = b.id and ( b.status & 0x800) = 0x800 left outer join sys.syscomments c on a.cdefault = c.id where object_name(a.id) = '"+row["TABLE_NAME"].ToString()+"' and a.status<>128  order by a.colorder";
+        SqlCommand cmd1 = new SqlCommand(files, conn);
+        SqlDataAdapter adFiles = new SqlDataAdapter(cmd1);
+        DataSet dsFiles = new DataSet();
+        adFiles.Fill(dsFiles);
+        PopIndent();
+        #>
+	}
+}
+    
+<#
+        manager.EndBlock();    
+         }            
+        conn.Close();  
+       manager.Process(true);  
+        #>
