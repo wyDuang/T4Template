@@ -9,7 +9,6 @@
 <#@ include file="$(ProjectDir)MultipleOutputHelper.ttinclude" #>
 
 <# 
- 
  string connectionString= "server=.;database=ExcessChip;uid=sa;password=test123;"; 
  SqlConnection conn = new SqlConnection(connectionString);
  conn.Open();
@@ -43,20 +42,19 @@ using System.Linq;
 
 namespace ExcessChip.DAL
 {
-	/// <summary>
-	/// -<#=tb_name#> 
-	/// </summary>
 	public class <#=tb_name#>Dal
 	{ 
 <#
 PushIndent("");
 
-WriteLine("		private static readonly string connString = ConfigHelper.GetConnectionString(\"connStr\");");
+WriteLine("		private static readonly string connStr = ConfigHelper.GetConnectionString(\"ExcessChipStr\");");
 
 WriteLine("		private SqlConnection _conn;");
-WriteLine("		public SqlConnection Conn {");
-WriteLine("			get {");
-WriteLine("				_conn = new SqlConnection(connString);");
+WriteLine("		public SqlConnection Conn");
+WriteLine("		{");
+WriteLine("			get");
+WriteLine("			{");
+WriteLine("				_conn = new SqlConnection(connStr);");
 WriteLine("				_conn.Open();");
 WriteLine("				return _conn;");
 WriteLine("			}");
@@ -83,9 +81,9 @@ adFiles.Fill(dsFiles);
  
 if (dsFiles.Tables.Count > 0)
 {
-string insert = "string sql=@\"insert into {0} ({1}) values({2}); SELECT @@IDENTITY\";";
-string update = "string sql=@\"update set {0} {1} where id=@id\";";
-string delete = "string sql=@\"delete from "+row["TABLE_NAME"].ToString()+" where Id = @Id\";";
+string insert = "string sql = @\"insert into {0} ({1}) values({2}); SELECT @@IDENTITY\";";
+string update = "string sql = @\"update set {0} {1} where id = @id\";";
+string delete = "string sql = @\"delete from "+row["TABLE_NAME"].ToString()+" where Id = @Id\";";
 string k1 = "";
 string v1 = "";
 string v2 = "";
@@ -94,12 +92,13 @@ foreach (DataRow dr in dsFiles.Tables[0].Rows)
 {
 	k1 += k1 == "" ? dr["name"].ToString() : ", "+dr["name"].ToString();
 	v1 += v1 == "" ? "@" + dr["name"].ToString() : ","+" @" + dr["name"].ToString();
-	v2 +=v2==""?dr["name"].ToString() + "=@" + dr["name"].ToString() :","+dr["name"].ToString() + "=@" + dr["name"].ToString();
+	v2 +=v2==""?dr["name"].ToString() + "=@" + dr["name"].ToString() :", "+dr["name"].ToString() + " = @" + dr["name"].ToString();
 }
 WriteLine(t);
 insert = string.Format(insert, row["TABLE_NAME"].ToString(), k1, v1);
 update = string.Format(update, row["TABLE_NAME"].ToString(), v2);
 
+WriteLine("		#region 默认方法");
 //insert方法
 WriteLine("		/// <summary>");
 WriteLine("		/// 增加一条数据");
@@ -130,11 +129,11 @@ WriteLine("		/// <returns></returns>");
 WriteLine("		public int Delete" + row["TABLE_NAME"].ToString() + "(int id)\r\n		{");
 WriteLine("			using (Conn)\r\n			{");
 WriteLine("				"+delete);
-WriteLine("				return Conn.Execute(sql.ToString());");
+WriteLine("				return Conn.Execute(sql.ToString(), id);");
 WriteLine("			}\r\n		}\r\n");
 
 //根据主键获取一个对象实体
-string list = "string sql=\"select * from "+row["TABLE_NAME"].ToString()+" where Id=@Id\";";
+string list = "string sql=\"select * from "+row["TABLE_NAME"].ToString()+" where Id = @Id\";";
 
 WriteLine("		/// <summary>");
 WriteLine("		/// 根据主键Id获取一个对象实体");
@@ -150,27 +149,32 @@ WriteLine("			}\r\n		}\r\n");
 string modelList = "string sql=\"select * from "+row["TABLE_NAME"].ToString()+"\";";
 
 WriteLine("		/// <summary>");
-WriteLine("		/// 获取实体List");
+WriteLine("		/// 获取实体集合");
 WriteLine("		/// </summary>");
 WriteLine("		/// <returns></returns>");
-WriteLine("		public List<"+row["TABLE_NAME"].ToString()+"> Get" + row["TABLE_NAME"].ToString() + "List(int top, string where = null, string order = null)\r\n		{");
+WriteLine("		public IEnumerable<"+row["TABLE_NAME"].ToString()+"> Get" + row["TABLE_NAME"].ToString() + "List()\r\n		{");
 WriteLine("			using (Conn)\r\n			{");
 WriteLine("				"+modelList);
-WriteLine("				return Conn.Query<"+row["TABLE_NAME"].ToString()+">(sql).ToList();");
+WriteLine("				return Conn.Query<"+row["TABLE_NAME"].ToString()+">(sql);");
 WriteLine("			}\r\n		}\r\n");
 
 //检测字段值是否存在
-string exist = "string sql=\"select count(*) from "+row["TABLE_NAME"].ToString()+" where {0}='{1}' \";";
+string exist = "string sql=\"select count(*) from "+row["TABLE_NAME"].ToString()+" where {0} = '{1}'\";";
  
 WriteLine("		/// <summary>");
-WriteLine("		/// 检测字段值是否存在");
+WriteLine("		/// 检测某字段的值是否存在");
 WriteLine("		/// </summary>");
 WriteLine("		/// <returns></returns>");
-WriteLine("		public bool IsColumnExist(string key,string val)\r\n		{");
+WriteLine("		public int IsColumnExist(string key, string value)\r\n		{");
 WriteLine("			using (Conn)\r\n			{");
 WriteLine("				"+exist);
-WriteLine("				return Conn.QuerySingle<int>(string.Format(sql, key, val)) > 0;");
-WriteLine("			}\r\n		}\r\n");
+WriteLine("				return Conn.QuerySingle<int>(string.Format(sql, key, value));");
+WriteLine("			}\r\n		}");
+WriteLine("		#endregion\r\n");
+
+WriteLine("		#region 自定义方法\r\n");
+
+WriteLine("		#endregion");
 }
 PopIndent();#>
 	}

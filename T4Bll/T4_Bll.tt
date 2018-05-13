@@ -1,0 +1,101 @@
+﻿<#@ template debug="true" hostspecific="true" language="C#" #>
+<#@ assembly name="System.Data" #>
+<#@ assembly name="System.xml" #>
+<#@ import namespace="System.Collections.Generic" #>
+<#@ import namespace="System.Data.SqlClient" #>
+<#@ import namespace="System.Data" #>
+<#@ assembly name="System.Core" #>
+<#@ import namespace="System.Linq" #>
+<#@ include file="$(ProjectDir)MultipleOutputHelper.ttinclude" #>
+
+<# 
+string connectionString= "server=.;database=ExcessChip;uid=sa;password=test123;"; 
+SqlConnection conn = new SqlConnection(connectionString);
+conn.Open();
+ 
+string selectQuery ="SET FMTONLY ON; select * from @tableName; SET FMTONLY OFF;";
+SqlCommand command = new SqlCommand(selectQuery,conn);
+SqlDataAdapter ad = new SqlDataAdapter(command);
+System.Data.DataSet ds = new DataSet(); 
+ 
+var manager = Manager.Create(Host, GenerationEnvironment); 
+
+
+System.Data.DataTable schema = conn.GetSchema("Tables");
+foreach(System.Data.DataRow row in schema.Rows)
+{ 
+ds.Tables.Clear();
+string tb_name= row["TABLE_NAME"].ToString(); 
+command.CommandText = selectQuery.Replace("@tableName",row["TABLE_NAME"].ToString());
+ad.FillSchema(ds, SchemaType.Mapped,tb_name); 
+
+manager.StartNewFile(tb_name+"Bll.cs");#>
+using ExcessChip.DAL;
+using ExcessChip.Model;
+using System;
+using System.Collections.Generic;
+
+namespace ExcessChip.BLL
+{
+	public class <#=tb_name#>Bll
+	{ 
+		private readonly <#=tb_name#>Dal _dal = new <#=tb_name#>Dal();
+<#
+PushIndent("");
+WriteLine("");
+WriteLine("		#region 默认方法");
+//insert方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 增加一条数据");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public object Add" + row["TABLE_NAME"].ToString() + "(" + row["TABLE_NAME"].ToString() + " model) => Convert.ToInt32(_dal.Add" + row["TABLE_NAME"].ToString() + "(model));\r\n");
+
+//update方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 更新一条数据");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public bool Update" + row["TABLE_NAME"].ToString() + "("+row["TABLE_NAME"].ToString()+" model) => _dal.Update" + row["TABLE_NAME"].ToString() + "(model) > 0;\r\n");
+
+//delete方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 删除一条数据");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public bool Delete" + row["TABLE_NAME"].ToString() + "(int id) => _dal.Delete"  + row["TABLE_NAME"].ToString() + "(id) > 0;\r\n");
+
+//根据主键获取一个对象实体
+WriteLine("		/// <summary>");
+WriteLine("		/// 根据主键Id获取一个对象实体");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public "+row["TABLE_NAME"].ToString()+" Get" + row["TABLE_NAME"].ToString() + "ById(int id) => _dal.Get" + row["TABLE_NAME"].ToString() + "ById(id);\r\n");
+
+//获取实体集合方法
+WriteLine("		/// <summary>");
+WriteLine("		/// 获取实体集合");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public IEnumerable<" + row["TABLE_NAME"].ToString() + "> Get" + row["TABLE_NAME"].ToString() + "List() => _dal.Get" + row["TABLE_NAME"].ToString() + "List();\r\n");
+
+//检测字段值是否存在
+WriteLine("		/// <summary>");
+WriteLine("		/// 检测某字段的值是否存在");
+WriteLine("		/// </summary>");
+WriteLine("		/// <returns></returns>");
+WriteLine("		public bool IsColumnExist(string key, string value) => _dal.IsColumnExist(key, value) > 0;\r\n");
+WriteLine("		#endregion\r\n");
+
+WriteLine("		#region 自定义方法\r\n");
+
+WriteLine("		#endregion");
+PopIndent();#>
+	}
+}
+<#
+	manager.EndBlock(); 
+	}
+	conn.Close(); 
+	manager.Process(true); 
+#>
