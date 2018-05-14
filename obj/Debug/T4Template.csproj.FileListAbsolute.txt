@@ -11,3 +11,11 @@ D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\ExcessChip.Common.pdb
 D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\ExcessChip.Model.pdb
 D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\Dapper.xml
 D:\JCDZProjects\ExcessChip\T4Template\bin\Debug\Newtonsoft.Json.xml
+G:\MyWork\GitHub\wyDuang\T4Template\bin\Debug\T4Template.dll
+G:\MyWork\GitHub\wyDuang\T4Template\bin\Debug\T4Template.pdb
+G:\MyWork\GitHub\wyDuang\T4Template\bin\Debug\Dapper.xml
+G:\MyWork\GitHub\wyDuang\T4Template\obj\Debug\T4Template.csprojResolveAssemblyReference.cache
+G:\MyWork\GitHub\wyDuang\T4Template\obj\Debug\T4Template.csproj.CoreCompileInputs.cache
+G:\MyWork\GitHub\wyDuang\T4Template\obj\Debug\T4Template.csproj.CopyComplete
+G:\MyWork\GitHub\wyDuang\T4Template\obj\Debug\T4Template.dll
+G:\MyWork\GitHub\wyDuang\T4Template\obj\Debug\T4Template.pdb

@@ -46,21 +46,13 @@
     <Compile Include="Properties\AssemblyInfo.cs" />
   </ItemGroup>
   <ItemGroup>
+    <Folder Include="T4Bll\" />
     <Folder Include="T4Dal\" />
+    <Folder Include="T4Mode1\" />
     <Folder Include="T4Model\" />
   </ItemGroup>
   <ItemGroup>
     <Service Include="{508349B6-6B84-4DF5-91F0-309BEEBAD82D}" />
-  </ItemGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\ExcessChip.Common\ExcessChip.Common.csproj">
-      <Project>{4f6c82c5-1199-479a-9f5d-e41d558c1621}</Project>
-      <Name>ExcessChip.Common</Name>
-    </ProjectReference>
-    <ProjectReference Include="..\ExcessChip.Model\ExcessChip.Model.csproj">
-      <Project>{F74A036A-61E3-432D-9745-75BBF560BF8E}</Project>
-      <Name>ExcessChip.Model</Name>
-    </ProjectReference>
   </ItemGroup>
   <Import Project="$(MSBuildToolsPath)\Microsoft.CSharp.targets" />
   <!-- To modify your build process, add your task inside one of the targets below and uncomment it. 
